@@ -2,3 +2,15 @@ numpy==1.26.4
 pandas==2.2.2
 matplotlib==3.8.4
 sympy==1.12
+scipy==1.13.1
+
+# assistant/ (capa de automatizacion + LLM):
+# - pytest: pruebas de regresion y de la capa assistant/.
+# - requests: HTTP directo para hablar con Gemini/Groq/OpenRouter/
+#   DeepSeek. Se prefirio sobre el SDK 'openai' porque ese SDK (via su
+#   dependencia httpx) fallo en pruebas reales con un choque de
+#   versiones ("Client.__init__() got an unexpected keyword argument
+#   'proxies'") en un Python que ya tenia otros proyectos instalados.
+#   requests es una libreria muy estable y evita ese riesgo.
+pytest==8.3.2
+requests==2.32.3

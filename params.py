@@ -4,6 +4,12 @@ NN = 32
 # Función a analizar
 FX = f"x**3 + 3*x - {NN}"
 
+# Función de iteración g(x) para el método de punto fijo (x = g(x)).
+# Valor por defecto generico (contraccion simple alrededor de FX);
+# para un ejercicio real, assistant/executor.py sobreescribe esto
+# via monkeypatch con la g(x) que corresponda al problema.
+GX = f"x - ({FX})/10"
+
 # Intervalo inicial (métodos cerrados)
 A0 = NN / 100
 B0 = 8 + A0

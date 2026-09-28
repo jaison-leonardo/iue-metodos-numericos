@@ -1,0 +1,6 @@
+Descarga de tanque cilíndrico:
+La velocidad del agua, $v~[m/s]$, en la descarga de un tanque cilíndrico a través de un tubo largo se puede calcular como:
+$$v=\sqrt{2gH}\tanh\left(\frac{\sqrt{2gH}}{2L}t\right)$$
+donde $g=9.81~m/s^{2}$, $H=$ carga hidrostática inicial $[m]$, $L=$ longitud de tubo $[m]$ y $t=$ tiempo transcurrido $[s]$. Determine la carga hidrostática $H$ necesaria para obtener $v=5~m/s$ en $2.5~s$ para un tubo de $4~m$ de longitud:
+*   **b)** Por bisección (valores iniciales $a_{0}=0$ y $b_{0}=2~m$).
+RN = [0,...,20].

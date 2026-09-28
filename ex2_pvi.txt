@@ -1,0 +1,5 @@
+Una gota se evapora a una tasa proporcional a su área de superficie ($A$):
+$$\frac{dV}{dt}=-kA$$
+Sabiendo que $k=0.08~mm/min$. Calcule el volumen desde $t=0$ hasta $10~min$ ($\Delta t=0.25~min$), con radio inicial de $2.5~mm$. Evalúe la validez de los resultados determinando el radio final.
+Es un problema de PVI por heun.
+RN = intervalo

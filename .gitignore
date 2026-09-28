@@ -1,0 +1,48 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+*.egg
+
+# ---- Entornos virtuales ----
+.venv/
+venv/
+env/
+ENV/
+
+# Distribución embebida de Python (binarios, no debe versionarse)
+python-3.12.0-embed-amd64/
+
+# ---- Variables de entorno / secretos ----
+.env
+.env.*
+!.env.example
+
+# ---- Tests / cache ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Salidas generadas (gráficas y resultados de los métodos numéricos) ----
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.csv
+*.out
+
+# ---- Editores / SO ----
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store

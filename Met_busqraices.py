@@ -11,7 +11,7 @@ Met_busqraices.py
 Implementación de métodos numéricos para la búsqueda de raíces
 de ecuaciones no lineales de la forma:
     f(x) = 0
-El módulo incluye dos categorías de métodos:
+El módulo incluye tres categorías de métodos:
 Métodos cerrados:
     - Bisección
     - Falsa Posición
@@ -20,6 +20,7 @@ que contenga una raíz y donde exista cambio de signo.
 Métodos abiertos:
     - Newton-Raphson
     - Secante
+    - Punto Fijo
 Estos métodos utilizan una o varias aproximaciones iniciales
 de la raíz y suelen converger más rápido, aunque no siempre
 garantizan convergencia.
@@ -29,14 +30,54 @@ Todos los métodos retornan:
     - Error final.
     - Aproximaciones intermedias seleccionadas para análisis
       y visualización.
+
+Parámetro adicional opcional ``trace``
+---------------------------------------
+Todas las funciones aceptan un parámetro opcional ``trace``.
+Si se pasa una lista (por ejemplo ``trace=[]``), cada función
+agrega en esa lista, EN CADA ITERACIÓN (no solo las de RN), un
+diccionario con las cantidades relevantes de ese paso. Esto permite
+que una capa externa (reporter) reconstruya la traza pedagógica
+completa sin alterar el cálculo ni la firma de retorno original.
+
+Cada registro de ``trace`` (a partir de n=1) incluye también la
+clave ``error_aprox``: el error aproximado porcentual entre la
+iteración actual y la anterior,
+    error_aprox = |r_n - r_(n-1)| / |r_n| * 100
+tal como lo define Chapra (no confundir con ``Error``, el residuo
+|f(r)| que ya usaba el código para decidir cuándo detenerse: ese
+criterio de parada NO se modifica, ``error_aprox`` es puramente
+informativo/aditivo). En n=0 (estado inicial) ``error_aprox`` es
+``None`` porque todavía no hay una iteración previa con la cual
+compararse.
+
+Convención de numeración pública de iteraciones:
+    n = 0  -> estado inicial (intervalo o aproximación inicial,
+              antes de aplicar la recurrencia).
+    n = k  (k >= 1) -> k-ésima aproximación calculada por el método.
+Esta es la misma convención que ya usaba internamente ``params.RN``
+(``if iterac + 1 in params.RN``), simplemente se documenta y se
+extiende para registrar también la fila n = 0.
 """
+
+
+def _error_aprox(nuevo, anterior):
+    """error aproximado porcentual |nuevo - anterior| / |nuevo| * 100.
+    Devuelve None si no hay `anterior` o si `nuevo` es 0 (division
+    por cero); es una cantidad puramente informativa para el reporte,
+    nunca se usa como criterio de parada."""
+    if anterior is None or nuevo == 0:
+        return None
+    return abs(nuevo - anterior) / abs(nuevo) * 100
+
 
 # Método de la bisección
 def biseccion(
     ei=params.A0,
     ed=params.B0,
     tol=params.TOL,
-    nmi=params.MAXIT
+    nmi=params.MAXIT,
+    trace=None
 ):
     """
     MÉTODO DE LA BISECCIÓN
@@ -67,6 +108,9 @@ def biseccion(
         Tolerancia deseada para el error.
     nmi : int
         Número máximo de iteraciones.
+    trace : list, opcional
+        Si se proporciona, se le agregan registros por iteración
+        con las claves: n, a, b, r, f_r, error_aprox.
     Retorna:
     --------
     r : float
@@ -78,17 +122,31 @@ def biseccion(
     iterac_list : list
         Lista de aproximaciones almacenadas según RN.
     """
-    
+
     Error = 1
     iterac = 0
     iterac_list = list()
     r = None
+    r_anterior = None
+
+    if trace is not None:
+        trace.append({'n': 0, 'a': ei, 'b': ed, 'r': None, 'f_r': None, 'error_aprox': None})
 
     while Error > tol:
         if deff.funcraiz(ei) * deff.funcraiz(ed) < 0:
             r = (ei + ed) / 2
             if iterac + 1 in params.RN:
                 iterac_list.append(r)
+            if trace is not None:
+                trace.append({
+                    'n': iterac + 1,
+                    'a': ei,
+                    'b': ed,
+                    'r': r,
+                    'f_r': deff.funcraiz(r),
+                    'error_aprox': _error_aprox(r, r_anterior),
+                })
+            r_anterior = r
             if deff.funcraiz(r) * deff.funcraiz(ei) < 0:
                 ed = r
             elif deff.funcraiz(r) == 0:
@@ -119,7 +177,8 @@ def biseccion(
 def falsapos(ei = params.A0,
                 ed = params.B0,
                 tol = params.TOL,
-                nmi = params.MAXIT):
+                nmi = params.MAXIT,
+                trace = None):
     """
     MÉTODO DE FALSA POSICIÓN (REGULA FALSI)
     Método cerrado para encontrar raíces utilizando una recta
@@ -149,6 +208,9 @@ def falsapos(ei = params.A0,
         Tolerancia deseada.
     nmi : int
         Número máximo de iteraciones.
+    trace : list, opcional
+        Si se proporciona, se le agregan registros por iteración
+        con las claves: n, a, b, r, f_r, error_aprox.
     Retorna:
     --------
     r : float
@@ -165,6 +227,10 @@ def falsapos(ei = params.A0,
     iterac = 0
     iterac_list = list()
     r = None
+    r_anterior = None
+
+    if trace is not None:
+        trace.append({'n': 0, 'a': ei, 'b': ed, 'r': None, 'f_r': None, 'error_aprox': None})
 
     while Error > tol:
         if deff.funcraiz(ei) * deff.funcraiz(ed) < 0:
@@ -173,6 +239,16 @@ def falsapos(ei = params.A0,
             r = (ei * f_ed - ed * f_ei) / (f_ed - f_ei)
             if iterac + 1 in params.RN:
                 iterac_list.append(r)
+            if trace is not None:
+                trace.append({
+                    'n': iterac + 1,
+                    'a': ei,
+                    'b': ed,
+                    'r': r,
+                    'f_r': deff.funcraiz(r),
+                    'error_aprox': _error_aprox(r, r_anterior),
+                })
+            r_anterior = r
             if deff.funcraiz(r) * deff.funcraiz(ei) < 0:
                 ed = r
             elif deff.funcraiz(r) == 0:
@@ -202,7 +278,8 @@ def falsapos(ei = params.A0,
 # Método de Newton
 def newton(r = params.A0,
             tol = params.TOL,
-            nmi = params.MAXIT):
+            nmi = params.MAXIT,
+            trace = None):
     """
     MÉTODO DE NEWTON-RAPHSON
     Método abierto para aproximar raíces utilizando la recta
@@ -229,6 +306,9 @@ def newton(r = params.A0,
         Tolerancia del método.
     nmi : int
         Número máximo de iteraciones.
+    trace : list, opcional
+        Si se proporciona, se le agregan registros por iteración
+        con las claves: n, r, f_r, fp_r, error_aprox.
     Retorna:
     --------
     r : float
@@ -244,15 +324,34 @@ def newton(r = params.A0,
     Error = 1
     iterac = 0
     iterac_list = list()
+
+    if trace is not None:
+        trace.append({
+            'n': 0,
+            'r': r,
+            'f_r': deff.funcraiz(r),
+            'fp_r': deff.funcraizder(r),
+            'error_aprox': None,
+        })
+
     while Error > tol:
         derivada = deff.funcraizder(r)
         if derivada == 0:
             raise ZeroDivisionError(
                 "La derivada es cero. No se puede continuar con Newton."
             )
+        r_anterior = r
         r = r - deff.funcraiz(r) / derivada
         if iterac + 1 in params.RN:
             iterac_list.append(r)
+        if trace is not None:
+            trace.append({
+                'n': iterac + 1,
+                'r': r,
+                'f_r': deff.funcraiz(r),
+                'fp_r': deff.funcraizder(r),
+                'error_aprox': _error_aprox(r, r_anterior),
+            })
         Error = abs(deff.funcraiz(r))
         iterac += 1
         if iterac >= nmi:
@@ -264,7 +363,8 @@ def newton(r = params.A0,
 def secante(r_anterior = params.R0,
                 r_actual = params.A0,
                 tol = params.TOL,
-                nmi = params.MAXIT):
+                nmi = params.MAXIT,
+                trace = None):
     """
     MÉTODO DE LA SECANTE
     Método abierto que aproxima la derivada mediante una recta
@@ -295,6 +395,9 @@ def secante(r_anterior = params.R0,
         Tolerancia del método.
     nmi : int
         Número máximo de iteraciones.
+    trace : list, opcional
+        Si se proporciona, se le agregan registros por iteración
+        con las claves: n, r_prev, r_curr, r_next, f_r_next, error_aprox.
     Retorna:
     --------
     r : float
@@ -310,6 +413,17 @@ def secante(r_anterior = params.R0,
     Error = 1
     iterac = 0
     iterac_list = list()
+
+    if trace is not None:
+        trace.append({
+            'n': 0,
+            'r_prev': r_anterior,
+            'r_curr': r_actual,
+            'r_next': None,
+            'f_r_next': None,
+            'error_aprox': None,
+        })
+
     while Error > tol:
         f_anterior = deff.funcraiz(r_anterior)
         f_actual = deff.funcraiz(r_actual)
@@ -321,8 +435,109 @@ def secante(r_anterior = params.R0,
         r = r_actual - (f_actual * (r_anterior - r_actual)) / denominador
         if iterac + 1 in params.RN:
             iterac_list.append(r)
+        if trace is not None:
+            trace.append({
+                'n': iterac + 1,
+                'r_prev': r_anterior,
+                'r_curr': r_actual,
+                'r_next': r,
+                'f_r_next': deff.funcraiz(r),
+                'error_aprox': _error_aprox(r, r_actual),
+            })
         r_anterior = r_actual
         r_actual = r
+        Error = abs(deff.funcraiz(r))
+        iterac += 1
+        if iterac >= nmi:
+            print("Se ha alcanzado el máximo de iteraciones")
+            break
+    return r, iterac, Error, iterac_list
+
+
+# Método de Punto Fijo
+def puntofijo(x0 = params.A0,
+              tol = params.TOL,
+              nmi = params.MAXIT,
+              trace = None):
+    """
+    MÉTODO DE PUNTO FIJO (ITERACIÓN DE PUNTO FIJO)
+    Método abierto que reescribe f(x) = 0 como x = g(x) y itera
+    r_(n+1) = g(r_n) hasta que dos aproximaciones sucesivas estén
+    suficientemente cerca (según el residuo |f(r)|, igual que los
+    demás métodos de este módulo).
+
+    IMPORTANTE: a diferencia de bisección/falsa posición/Newton/
+    secante (que solo necesitan f(x)), este método necesita la
+    función de iteración g(x) tal que x = g(x). g(x) NO se deriva
+    automáticamente de f(x) (elegir un buen g(x) es parte del
+    análisis del ejercicio, y una elección mala puede diverger);
+    se lee de ``params.GX`` (mismo patrón que ``params.FX`` para
+    f(x)), y assistant/executor.py hace monkeypatch de esa variable
+    igual que ya hace con params.FX.
+
+    Funcionamiento:
+    1. Se parte de una aproximación inicial x0.
+    2. Se calcula r_(n+1) = g(r_n).
+    3. Se evalúa el residuo |f(r_(n+1))| (con la f(x) original,
+       leída de params.FX vía deff.funcraiz) para decidir si se
+       alcanzó la tolerancia.
+    4. Se repite hasta la tolerancia o el máximo de iteraciones.
+    Ventajas:
+    - Muy simple de implementar; no requiere derivadas.
+    Desventajas:
+    - Solo converge si |g'(x)| < 1 cerca de la raíz; una elección
+      de g(x) inadecuada puede diverger o converger muy lento.
+    Parámetros:
+    ----------
+    x0 : float
+        Aproximación inicial.
+    tol : float
+        Tolerancia deseada (sobre el residuo |f(r)|, igual que los
+        demás métodos de este módulo).
+    nmi : int
+        Número máximo de iteraciones.
+    trace : list, opcional
+        Si se proporciona, se le agregan registros por iteración
+        con las claves: n, r, g_r, f_r, error_aprox.
+    Retorna:
+    --------
+    r : float
+        Aproximación final de la raíz.
+    iterac : int
+        Número de iteraciones realizadas.
+    Error : float
+        Error final (residuo |f(r)|).
+    iterac_list : list
+        Aproximaciones guardadas según RN.
+    """
+
+    Error = 1
+    iterac = 0
+    iterac_list = list()
+    r = x0
+
+    if trace is not None:
+        trace.append({
+            'n': 0,
+            'r': r,
+            'g_r': deff.funcgx(r),
+            'f_r': deff.funcraiz(r),
+            'error_aprox': None,
+        })
+
+    while Error > tol:
+        r_anterior = r
+        r = deff.funcgx(r_anterior)
+        if iterac + 1 in params.RN:
+            iterac_list.append(r)
+        if trace is not None:
+            trace.append({
+                'n': iterac + 1,
+                'r': r,
+                'g_r': deff.funcgx(r),
+                'f_r': deff.funcraiz(r),
+                'error_aprox': _error_aprox(r, r_anterior),
+            })
         Error = abs(deff.funcraiz(r))
         iterac += 1
         if iterac >= nmi:
